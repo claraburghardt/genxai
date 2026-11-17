@@ -1,7 +1,6 @@
 import pandas as pd
 from dataclasses import dataclass
 from sklearn.model_selection import train_test_split
-from imblearn.over_sampling import SMOTE
 
 from modules.data_ingestion import IngestionOutput
 
@@ -12,9 +11,11 @@ class PreprocessingOutput:
     X_test: pd.DataFrame
     y_train: pd.Series
     y_test: pd.Series
-    gene_ids: list[str]      # genes remaining after filtering
+    gene_ids: list[str]
     sample_ids_train: list[str]
     sample_ids_test: list[str]
+    X_train_raw: pd.DataFrame = None
+    y_train_raw: pd.Series = None
 
 
 class PreprocessingModule:
@@ -31,6 +32,10 @@ class PreprocessingModule:
         X = self._filter_samples(X)
         y = y.loc[X.index]
 
+        # fill remaining NaN with gene median (after sample filter, before gene filter)
+        if X.isnull().any().any():
+            X = X.fillna(X.median())
+
         X = self._filter_genes(X)
 
         X_train, X_test, y_train, y_test = train_test_split(
@@ -40,12 +45,11 @@ class PreprocessingModule:
             random_state=self.config["random_state"],
         )
 
-        if self.config.get("apply_smote", True):
-            X_train, y_train = self._apply_smote(X_train, y_train)
+        X_train_raw = X_train.copy()
+        y_train_raw = y_train.copy()
 
         print(f"[Preprocessing] Train: {X_train.shape[0]} samples | Test: {X_test.shape[0]} samples")
-        print(f"[Preprocessing] Genes after filtering: {X_train.shape[1]}")
-        print(f"[Preprocessing] Train PAM50 distribution after SMOTE:\n{y_train.value_counts()}\n")
+        print(f"[Preprocessing] Genes after filtering: {X_train.shape[1]}\n")
 
         return PreprocessingOutput(
             X_train=X_train,
@@ -55,6 +59,8 @@ class PreprocessingModule:
             gene_ids=X_train.columns.tolist(),
             sample_ids_train=X_train.index.tolist(),
             sample_ids_test=X_test.index.tolist(),
+            X_train_raw=X_train_raw,
+            y_train_raw=y_train_raw,
         )
 
     def _filter_samples(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -67,18 +73,11 @@ class PreprocessingModule:
 
     def _filter_genes(self, X: pd.DataFrame) -> pd.DataFrame:
         min_frac = self.config["min_sample_expression"]
-        # keep genes expressed (non-zero) in at least min_frac of samples
-        expressed_frac = (X > 0).mean(axis=0)
+        if self.config.get("gene_filter_nonzero", True):
+            expressed_frac = (X != 0).mean(axis=0)
+        else:
+            expressed_frac = X.notna().mean(axis=0)
         before = X.shape[1]
         X = X.loc[:, expressed_frac >= min_frac]
         print(f"[Preprocessing] Gene filter: {before} -> {X.shape[1]} genes (dropped {before - X.shape[1]})")
         return X
-
-    def _apply_smote(self, X_train: pd.DataFrame, y_train: pd.Series):
-        smote = SMOTE(random_state=self.config["random_state"])
-        X_res, y_res = smote.fit_resample(X_train, y_train)
-        # restore DataFrame/Series with gene names
-        X_res = pd.DataFrame(X_res, columns=X_train.columns)
-        y_res = pd.Series(y_res, name=y_train.name)
-        print(f"[Preprocessing] SMOTE: {len(y_train)} -> {len(y_res)} training samples")
-        return X_res, y_res

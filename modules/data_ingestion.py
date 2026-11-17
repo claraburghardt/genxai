@@ -26,6 +26,21 @@ class DataIngestionModule:
         # align: keep only samples present in both X and y
         common = X.index.intersection(y.index)
         X, y = X.loc[common], y.loc[common]
+
+        if self.config.get("primary_tumor_only", True):
+            codes = pd.Series([s[13:15] for s in X.index], index=X.index)
+            keep = codes == "01"
+            dropped = (~keep).sum()
+            X, y = X.loc[keep], y.loc[keep]
+            print(f"[DataIngestion] Primary-tumor filter: dropped {dropped} non-primary samples (codes != 01)")
+
+        # optionally drop the Normal-like class entirely (4-subtype setting, as in Park & Rhee 2024)
+        if self.config.get("drop_normal_like", False):
+            before = len(y)
+            mask = y != "Normal"
+            X, y = X.loc[mask], y.loc[mask]
+            print(f"[DataIngestion] Dropped Normal-like class: {before} -> {len(y)} samples")
+
         print(f"[DataIngestion] Loaded {X.shape[0]} samples x {X.shape[1]} genes")
         print(f"[DataIngestion] PAM50 distribution:\n{y.value_counts()}\n")
         return IngestionOutput(
@@ -47,7 +62,6 @@ class DataIngestionModule:
         df.columns = df.columns.astype(str)
 
         if not self.config.get("already_log2_normalized", True):
-            # log2(x + 1) to handle zeros
             df = np.log2(df + 1)
             print("[DataIngestion] Applied log2(x+1) normalization")
 

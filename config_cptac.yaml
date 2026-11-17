@@ -1,0 +1,40 @@
+data:
+  expression_file: "data/HS_CPTAC_BRCA_2018_RNA_GENE.cct"   # genes x samples, already normalized (centered log2 FPKM)
+  labels_file: "data/CPTAC_BRCA_labels.tsv"                  # generated from HS_CPTAC_BRCA_2018_CLI.tsi
+  labels_column: "PAM50Call_RNAseq"
+  gene_axis: "rows"                                           # genes are rows
+  already_log2_normalized: true                               # values are centered log2, no further normalization needed
+  primary_tumor_only: false                                   # CPTAC does not use TCGA barcodes
+
+preprocessing:
+  missing_value_threshold: 0.50    # CPTAC has sparse NaN; fill remaining with gene median
+  min_sample_expression: 0.05
+  gene_filter_nonzero: false       # CPTAC values are centered (many negatives); filter by non-missing instead of non-zero
+  test_size: 0.20
+  random_state: 42
+  apply_smote: false       # CPTAC has too few samples per class for SMOTE (Normal-like has ~4 in train)
+
+feature_selection:
+  variance_threshold: 0.1
+  n_top_genes: 500
+
+explainability:
+  n_random_sets: 500
+
+classification:
+  random_state: 42
+  cv_folds: 5
+  hyperparameter_grid:
+    learning_rate: [0.05, 0.1, 0.2]
+    max_depth: [4, 6, 8]
+    n_estimators: [100, 200, 300]
+    subsample: [0.8]
+    colsample_bytree: [0.8]
+
+stability:
+  n_runs: 10
+  mode: "both"
+
+output:
+  model_path: "outputs/xgboost_model_cptac.json"
+  results_path: "outputs/results_cptac.json"

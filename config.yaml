@@ -4,6 +4,8 @@ data:
   labels_column: "PAM50Call_RNAseq"                            # column name with PAM50 labels
   gene_axis: "rows"                                            # genes are rows in this file
   already_log2_normalized: true                                # already log2(RSEM+1) normalized
+  primary_tumor_only: true                                     # keep only TCGA sample code 01 (drops normal adjacent tissue)
+  drop_normal_like: false                                      # true -> 4-subtype setting (exclude Normal-like), as in Park & Rhee 2024
 
 preprocessing:
   missing_value_threshold: 0.10    # drop samples with > 10% missing values
@@ -16,6 +18,9 @@ feature_selection:
   variance_threshold: 0.1          # remove near-constant genes
   n_top_genes: 500                 # top genes by mutual information to keep
 
+explainability:
+  n_random_sets: 500               # Exp 2 null test: random gene sets drawn from the panel (offline, fast)
+
 classification:
   random_state: 42
   cv_folds: 5
@@ -23,6 +28,15 @@ classification:
     learning_rate: [0.05, 0.1, 0.2]
     max_depth: [4, 6, 8]
     n_estimators: [100, 200, 300]
+    subsample: [0.8]
+    colsample_bytree: [0.8]
+
+stability:
+  n_runs: 10
+  # "fixed"  -> scenario A: same 500-gene panel in every run, vary split+SMOTE+seed
+  # "refit"  -> scenario B: re-select the 500 genes from scratch in every run
+  # "both"   -> run A and B and save both
+  mode: "both"
 
 output:
   model_path: "outputs/xgboost_model.json"
