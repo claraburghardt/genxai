@@ -170,8 +170,12 @@ class StabilityModule:
             "overlap_threshold": OVERLAP_THRESHOLD,
             "subtypes_passed":  n_passed,
             "subtypes_total":   len(classes),
-            "mean_spearman_all": float(np.mean(list(mean_spearman.values()))),
-            "mean_overlap_all":  float(np.mean(list(mean_overlap.values()))),
+            "mean_spearman_all": float(np.nanmean(list(mean_spearman.values()))),
+            "mean_overlap_all":  float(np.nanmean(list(mean_overlap.values()))),
+            "runs_without_correct_samples": {
+                c: sum(1 for s in seeds if not per_run_top_genes[s][c])
+                for c in classes
+            },
         }
 
         self._print_results(classes, mean_spearman, mean_overlap, passed, summary)
@@ -208,16 +212,16 @@ class StabilityModule:
                     names_j = set(list(rank_j.keys())[:N_TOP_OVERLAP])
 
                     shared = [g for g in rank_i if g in rank_j]
-                    if len(shared) > 1:
-                        scores_i = [rank_i[g] for g in shared]
-                        scores_j = [rank_j[g] for g in shared]
-                        rho, _ = spearmanr(scores_i, scores_j)
+                    if rank_i and rank_j and len(shared) > 1:
+                        rho, _ = spearmanr(
+                            [rank_i[g] for g in shared],
+                            [rank_j[g] for g in shared],
+                        )
                         if np.isnan(rho):
-                            rho = 0.0
+                            rho = 0.0  # constant ranking (all SHAP values identical)
+                        overlap = len(names_i & names_j) / N_TOP_OVERLAP
                     else:
-                        rho = 0.0
-
-                    overlap = len(names_i & names_j) / N_TOP_OVERLAP if names_i else 0.0
+                        rho = overlap = np.nan  # one run had no correct samples
 
                     rho_mat[i, j] = rho_mat[j, i] = rho
                     overlap_mat[i, j] = overlap_mat[j, i] = overlap
@@ -227,10 +231,15 @@ class StabilityModule:
 
             spearman_matrix[cls] = rho_mat.tolist()
             overlap_matrix[cls]  = overlap_mat.tolist()
-            mean_spearman[cls]   = float(np.mean(pairs_rho))
-            mean_overlap[cls]    = float(np.mean(pairs_overlap))
-            passed[cls]          = (mean_spearman[cls] >= RHO_THRESHOLD and
-                                    mean_overlap[cls]  >= OVERLAP_THRESHOLD)
+            mean_spearman[cls] = (float(np.nanmean(pairs_rho))
+                                  if not np.isnan(pairs_rho).all() else float("nan"))
+            mean_overlap[cls]  = (float(np.nanmean(pairs_overlap))
+                                  if not np.isnan(pairs_overlap).all() else float("nan"))
+            passed[cls] = bool(
+                not np.isnan(mean_spearman[cls]) and not np.isnan(mean_overlap[cls])
+                and mean_spearman[cls] >= RHO_THRESHOLD
+                and mean_overlap[cls]  >= OVERLAP_THRESHOLD
+            )
 
         return spearman_matrix, overlap_matrix, mean_spearman, mean_overlap, passed
 

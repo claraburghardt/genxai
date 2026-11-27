@@ -39,9 +39,10 @@ BREAST_CANCER_PATHWAYS = [
     "proteoglycans in cancer", "prolactin",
 ]
 
-ENRICHMENT_FDR      = 0.05
-N_TOP_COHERENCE     = 10
-N_TOP_PATHWAY       = 100
+ENRICHMENT_FDR         = 0.05
+N_TOP_COHERENCE        = 10
+N_TOP_PATHWAY          = 100
+MIN_CORRECT_SAMPLES    = 3   # subtypes with fewer correct predictions → "inconclusive"
 
 
 @dataclass
@@ -94,11 +95,17 @@ class ExplainabilityModule:
         # --- Top genes per subtype ---
         top_genes = self._top_genes_per_subtype(shap_values, X_test_df, y_test, y_pred, genes, classes)
 
+        n_correct = {
+            c: int(((y_test.values == c) & (y_pred == c)).sum())
+            for c in classes
+        }
+        print("[Explainability] Correct predictions per subtype:", n_correct)
+
         # --- Coherence check ---
         coherence = self._check_coherence(top_genes, classes)
 
         # --- Pathway enrichment ---
-        enrichment, enrich_summary = self._pathway_enrichment(top_genes, classes)
+        enrichment, enrich_summary = self._pathway_enrichment(top_genes, classes, n_correct)
 
         self._print_results(top_genes, coherence, enrich_summary, classes)
         self._save_results(top_genes, coherence, enrich_summary)
@@ -137,7 +144,7 @@ class ExplainabilityModule:
         try:
             enr = gp.enrichr(
                 gene_list  = gene_list,
-                gene_sets  = ["MSigDB_Hallmark_2020"],
+                gene_sets  = ["MSigDB_Hallmark_2020", "KEGG_2021_Human"],
                 organism   = "human",
                 outdir     = None,
                 cutoff     = 0.05,
@@ -200,7 +207,7 @@ class ExplainabilityModule:
             }
         return coherence
 
-    def _pathway_enrichment(self, top_genes, classes):
+    def _pathway_enrichment(self, top_genes, classes, n_correct):
         enrichment  = {}
         summary     = {}
 
@@ -208,7 +215,10 @@ class ExplainabilityModule:
             gene_list = [g for g, _ in top_genes[cls][:N_TOP_PATHWAY]]
             if not gene_list:
                 enrichment[cls] = pd.DataFrame()
-                summary[cls]    = {"n_significant": 0, "top_pathway": None, "passed": False}
+                summary[cls]    = {
+                    "n_significant": 0, "top_pathway": None, "passed": False,
+                    "n_correct": n_correct[cls], "status": "inconclusive",
+                }
                 continue
 
             try:
@@ -231,17 +241,28 @@ class ExplainabilityModule:
                     for term in results_df["Term"].tolist()
                 ) if n_sig > 0 else False
 
+                nc = n_correct[cls]
+                status = (
+                    "inconclusive" if nc < MIN_CORRECT_SAMPLES
+                    else "coherent" if passed else "not_coherent"
+                )
+
                 enrichment[cls] = results_df
                 summary[cls]    = {
                     "n_significant": n_sig,
                     "top_pathway":   top_path,
                     "passed":        passed,
+                    "n_correct":     nc,
+                    "status":        status,
                 }
 
             except Exception as e:
                 print(f"[Explainability] Enrichment failed for {cls}: {e}")
                 enrichment[cls] = pd.DataFrame()
-                summary[cls]    = {"n_significant": 0, "top_pathway": None, "passed": False}
+                summary[cls]    = {
+                    "n_significant": 0, "top_pathway": None, "passed": False,
+                    "n_correct": n_correct[cls], "status": "inconclusive",
+                }
 
         return enrichment, summary
 
@@ -255,12 +276,15 @@ class ExplainabilityModule:
             print(f"\n{cls}")
             print(f"  Top-10 SHAP genes  : {c['top10_genes']}")
             print(f"  PAM50/marker genes : {c['hits']} ({c['n_hits']}/{N_TOP_COHERENCE}) [illustrative]")
+            print(f"  Correct samples    : {e['n_correct']}")
             print(f"  Enriched pathways  : {e['n_significant']} significant (FDR<{ENRICHMENT_FDR})")
             print(f"  Top pathway        : {e['top_pathway']}")
-            print(f"  Breast-cancer path.: {'PASS' if e['passed'] else 'FAIL'}")
+            print(f"  Status             : {e['status'].upper()}")
         print("\n" + "=" * 60)
-        enrich_pass = sum(1 for e in enrich_summary.values() if e["passed"])
-        print(f"Biological coherence (pathway enrichment): {enrich_pass}/5 subtypes passed")
+        n_coh = sum(e["status"] == "coherent"      for e in enrich_summary.values())
+        n_inc = sum(e["status"] == "inconclusive"  for e in enrich_summary.values())
+        n_cls = len(enrich_summary)
+        print(f"Biological coherence: {n_coh}/{n_cls} coherent, {n_inc} inconclusive")
         print("=" * 60)
 
     def _save_results(self, top_genes, coherence, enrich_summary):
