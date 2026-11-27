@@ -1,0 +1,48 @@
+{
+  "experiment": 3,
+  "summary": {
+    "scenario": "fixed",
+    "n_runs": 10,
+    "n_top_overlap": 20,
+    "rho_threshold": 0.85,
+    "overlap_threshold": 0.8,
+    "subtypes_passed": 0,
+    "subtypes_total": 5,
+    "mean_spearman_all": 0.386943747623515,
+    "mean_overlap_all": 0.5175714285714286,
+    "runs_without_correct_samples": {
+      "Basal": 0,
+      "HER2-enriched": 0,
+      "Luminal A": 0,
+      "Luminal B": 2,
+      "Normal": 7
+    }
+  },
+  "per_subtype": {
+    "Basal": {
+      "mean_spearman": 0.2857606560610956,
+      "mean_overlap": 0.5166666666666667,
+      "passed": false
+    },
+    "HER2-enriched": {
+      "mean_spearman": 0.4009171208971535,
+      "mean_overlap": 0.5444444444444445,
+      "passed": false
+    },
+    "Luminal A": {
+      "mean_spearman": 0.3361186928023208,
+      "mean_overlap": 0.45888888888888896,
+      "passed": false
+    },
+    "Luminal B": {
+      "mean_spearman": 0.3837415249371206,
+      "mean_overlap": 0.41785714285714287,
+      "passed": false
+    },
+    "Normal": {
+      "mean_spearman": 0.528180743419885,
+      "mean_overlap": 0.65,
+      "passed": false
+    }
+  }
+}

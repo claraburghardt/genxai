@@ -1,0 +1,40 @@
+{
+  "experiment": 3,
+  "summary": {
+    "n_runs": 10,
+    "n_top_overlap": 20,
+    "rho_threshold": 0.85,
+    "overlap_threshold": 0.8,
+    "subtypes_passed": 0,
+    "subtypes_total": 5,
+    "mean_spearman_all": 0.3988338825078628,
+    "mean_overlap_all": 0.49044444444444446
+  },
+  "per_subtype": {
+    "Basal": {
+      "mean_spearman": 0.425754934530303,
+      "mean_overlap": 0.5244444444444445,
+      "passed": false
+    },
+    "Her2": {
+      "mean_spearman": 0.3675949472960204,
+      "mean_overlap": 0.5122222222222222,
+      "passed": false
+    },
+    "LumA": {
+      "mean_spearman": 0.4376849083933216,
+      "mean_overlap": 0.49777777777777776,
+      "passed": false
+    },
+    "LumB": {
+      "mean_spearman": 0.40564225817232474,
+      "mean_overlap": 0.5266666666666668,
+      "passed": false
+    },
+    "Normal": {
+      "mean_spearman": 0.35749236414734414,
+      "mean_overlap": 0.39111111111111113,
+      "passed": false
+    }
+  }
+}

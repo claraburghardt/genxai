@@ -1,0 +1,48 @@
+{
+  "experiment": 3,
+  "summary": {
+    "scenario": "refit",
+    "n_runs": 10,
+    "n_top_overlap": 20,
+    "rho_threshold": 0.85,
+    "overlap_threshold": 0.8,
+    "subtypes_passed": 0,
+    "subtypes_total": 5,
+    "mean_spearman_all": 0.36959413145071435,
+    "mean_overlap_all": 0.36688888888888893,
+    "runs_without_correct_samples": {
+      "Basal": 0,
+      "HER2-enriched": 0,
+      "Luminal A": 0,
+      "Luminal B": 3,
+      "Normal": 8
+    }
+  },
+  "per_subtype": {
+    "Basal": {
+      "mean_spearman": 0.3375553367683283,
+      "mean_overlap": 0.4822222222222222,
+      "passed": false
+    },
+    "HER2-enriched": {
+      "mean_spearman": 0.35593119352720526,
+      "mean_overlap": 0.3677777777777778,
+      "passed": false
+    },
+    "Luminal A": {
+      "mean_spearman": 0.39301463094668143,
+      "mean_overlap": 0.4177777777777777,
+      "passed": false
+    },
+    "Luminal B": {
+      "mean_spearman": 0.3515154735593252,
+      "mean_overlap": 0.2666666666666667,
+      "passed": false
+    },
+    "Normal": {
+      "mean_spearman": 0.40995402245203166,
+      "mean_overlap": 0.3,
+      "passed": false
+    }
+  }
+}

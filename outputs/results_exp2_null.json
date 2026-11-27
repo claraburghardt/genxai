@@ -1,0 +1,38 @@
+{
+  "experiment": "2_null",
+  "method": "random gene sets drawn from the 500-gene panel; panel used as enrichment background",
+  "n_random_sets": 10,
+  "null_distribution_mean": 0.0,
+  "per_subtype": {
+    "Basal": {
+      "real_bc_pathways": 0,
+      "null_mean": 0.0,
+      "null_max": 0,
+      "p_empirical": 1.0
+    },
+    "Her2": {
+      "real_bc_pathways": 0,
+      "null_mean": 0.0,
+      "null_max": 0,
+      "p_empirical": 1.0
+    },
+    "LumA": {
+      "real_bc_pathways": 0,
+      "null_mean": 0.0,
+      "null_max": 0,
+      "p_empirical": 1.0
+    },
+    "LumB": {
+      "real_bc_pathways": 0,
+      "null_mean": 0.0,
+      "null_max": 0,
+      "p_empirical": 1.0
+    },
+    "Normal": {
+      "real_bc_pathways": 0,
+      "null_mean": 0.0,
+      "null_max": 0,
+      "p_empirical": 1.0
+    }
+  }
+}
